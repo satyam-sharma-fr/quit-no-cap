@@ -11,11 +11,12 @@ import { Leaf } from "lucide-react"
 import { toast } from "sonner"
 import Link from "next/link"
 
-export default function LandingPage() {
-  const { user, loading, login } = useAuth()
+export default function SignupPage() {
+  const { user, loading, signup } = useAuth()
   const router = useRouter()
   const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
   const [submitting, setSubmitting] = useState(false)
 
   useEffect(() => {
@@ -24,18 +25,27 @@ export default function LandingPage() {
     }
   }, [user, loading, router])
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!username.trim() || !password) {
-      toast.error("Enter your username and password")
+      toast.error("Fill in all fields")
+      return
+    }
+    if (password !== confirmPassword) {
+      toast.error("Passwords don't match")
+      return
+    }
+    if (password.length < 6) {
+      toast.error("Password must be at least 6 characters")
       return
     }
     setSubmitting(true)
     try {
-      await login(username.trim(), password)
+      await signup(username.trim(), password)
+      toast.success("Welcome aboard!")
       router.push("/dashboard")
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Login failed")
+      toast.error(err instanceof Error ? err.message : "Signup failed")
     } finally {
       setSubmitting(false)
     }
@@ -58,22 +68,22 @@ export default function LandingPage() {
             <Leaf className="h-8 w-8 text-white" />
           </div>
           <h1 className="text-3xl font-bold tracking-tight text-gray-900">
-            Quit No Cap
+            Create account
           </h1>
           <p className="text-muted-foreground text-sm">
-            Hold each other accountable. No cap.
+            Start your journey today
           </p>
         </div>
 
-        {/* Login form */}
+        {/* Signup form */}
         <Card className="shadow-sm">
           <CardContent className="p-6">
-            <form onSubmit={handleLogin} className="space-y-4">
+            <form onSubmit={handleSignup} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="username">Username</Label>
                 <Input
                   id="username"
-                  placeholder="your username"
+                  placeholder="pick a username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   autoComplete="username"
@@ -85,10 +95,21 @@ export default function LandingPage() {
                 <Input
                   id="password"
                   type="password"
-                  placeholder="your password"
+                  placeholder="at least 6 characters"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  autoComplete="current-password"
+                  autoComplete="new-password"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirm-password">Confirm password</Label>
+                <Input
+                  id="confirm-password"
+                  type="password"
+                  placeholder="confirm your password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  autoComplete="new-password"
                 />
               </div>
               <Button
@@ -96,19 +117,19 @@ export default function LandingPage() {
                 disabled={submitting}
                 className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
               >
-                {submitting ? "Logging in..." : "Log in"}
+                {submitting ? "Creating account..." : "Sign up"}
               </Button>
             </form>
           </CardContent>
         </Card>
 
         <p className="text-center text-sm text-muted-foreground">
-          Don&apos;t have an account?{" "}
+          Already have an account?{" "}
           <Link
-            href="/signup"
+            href="/"
             className="font-medium text-emerald-600 hover:text-emerald-700 underline-offset-4 hover:underline"
           >
-            Sign up
+            Log in
           </Link>
         </p>
       </div>
