@@ -1,6 +1,8 @@
 export type User = {
   id: string
-  username: string
+  name: string
+  email: string
+  image?: string | null
 }
 
 export type Habit = {
@@ -41,8 +43,8 @@ export type BuddyRequest = {
   to_user_id: string
   status: string
   created_at: string
-  from_username?: string
-  to_username?: string
+  from_name?: string
+  from_image?: string | null
 }
 
 export type BuddyData = {

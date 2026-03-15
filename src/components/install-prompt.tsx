@@ -1,10 +1,9 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Download, X } from "lucide-react"
 
 interface BeforeInstallPromptEvent extends Event {
-  prompt: () => Promise<void>
+  prompt(): Promise<void>
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>
 }
 
@@ -30,7 +29,9 @@ export function InstallPrompt() {
     return () => window.removeEventListener("beforeinstallprompt", handler)
   }, [])
 
-  const handleInstall = async () => {
+  if (dismissed || !deferredPrompt) return null
+
+  async function handleInstall() {
     if (!deferredPrompt) return
     await deferredPrompt.prompt()
     const { outcome } = await deferredPrompt.userChoice
@@ -40,33 +41,53 @@ export function InstallPrompt() {
     setDeferredPrompt(null)
   }
 
-  const handleDismiss = () => {
+  function handleDismiss() {
     setDismissed(true)
     localStorage.setItem("pwa-install-dismissed", "1")
   }
 
-  if (dismissed || !deferredPrompt) return null
-
   return (
-    <div className="fixed top-0 left-0 right-0 z-50 bg-[#111113]/95 backdrop-blur-xl border-b border-red-500/10 text-white px-4 py-3 flex items-center justify-between gap-3 animate-fade-up">
-      <div className="flex items-center gap-2.5 text-sm">
-        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-red-500/10 border border-red-500/20">
-          <Download className="h-3.5 w-3.5 text-red-400" />
-        </div>
-        <span className="text-zinc-300 text-xs">Install for the best experience</span>
+    <div className="bg-[#151518] border-b-[0.5px] border-[rgba(255,255,255,0.06)] px-4 py-3 flex items-center justify-between">
+      <div className="flex items-center gap-3">
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="rgba(255,255,255,0.45)"
+          strokeWidth={1.5}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+          <polyline points="7 10 12 15 17 10" />
+          <line x1="12" y1="15" x2="12" y2="3" />
+        </svg>
+        <span className="text-[13px] text-[rgba(255,255,255,0.45)]">
+          Install app for the best experience
+        </span>
       </div>
-      <div className="flex items-center gap-2 shrink-0">
+      <div className="flex items-center gap-2">
         <button
-          className="px-3 py-1.5 text-[11px] font-semibold rounded-lg bg-red-500 hover:bg-red-600 text-white transition-all active:scale-95"
           onClick={handleInstall}
+          className="bg-[#C8F56E] text-[#0C0C0E] rounded-lg px-3 py-1.5 text-[11px] font-medium active:scale-[0.97] transition-transform duration-100"
         >
           Install
         </button>
-        <button
-          onClick={handleDismiss}
-          className="text-zinc-600 hover:text-zinc-400 transition-colors"
-        >
-          <X className="h-4 w-4" />
+        <button onClick={handleDismiss} className="p-1">
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="rgba(255,255,255,0.25)"
+            strokeWidth={1.5}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
         </button>
       </div>
     </div>

@@ -9,16 +9,15 @@ export async function GET(_request: NextRequest) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    // Find accepted buddy request where user is either side
+    // Find accepted buddy request
     const { data: acceptedRequests } = await supabase
       .from("buddy_requests")
       .select("id, from_user_id, to_user_id")
       .eq("status", "accepted")
       .or(`from_user_id.eq.${session.id},to_user_id.eq.${session.id}`);
 
-    let buddy: { id: string; username: string } | null = null;
+    let buddy: { id: string; name: string; email: string; image: string | null } | null = null;
     let habits: Array<Record<string, unknown>> = [];
-    const checkIns: Array<Record<string, unknown>> = [];
 
     if (acceptedRequests && acceptedRequests.length > 0) {
       const req = acceptedRequests[0];
@@ -27,7 +26,7 @@ export async function GET(_request: NextRequest) {
 
       const { data: buddyProfile } = await supabase
         .from("profiles")
-        .select("id, username")
+        .select("id, name, email, image")
         .eq("id", buddyId)
         .single();
 
@@ -84,29 +83,30 @@ export async function GET(_request: NextRequest) {
       .eq("to_user_id", session.id)
       .eq("status", "pending");
 
-    let pendingWithUsernames: Array<Record<string, unknown>> = [];
+    let pendingWithNames: Array<Record<string, unknown>> = [];
     if (pendingRequests && pendingRequests.length > 0) {
       const fromIds = pendingRequests.map((r) => r.from_user_id);
       const { data: senders } = await supabase
         .from("profiles")
-        .select("id, username")
+        .select("id, name, image")
         .in("id", fromIds);
 
       const senderMap = new Map(
-        (senders || []).map((s) => [s.id, s.username])
+        (senders || []).map((s) => [s.id, { name: s.name, image: s.image }])
       );
 
-      pendingWithUsernames = pendingRequests.map((r) => ({
+      pendingWithNames = pendingRequests.map((r) => ({
         ...r,
-        from_username: senderMap.get(r.from_user_id) || "unknown",
+        from_name: senderMap.get(r.from_user_id)?.name || "Someone",
+        from_image: senderMap.get(r.from_user_id)?.image || null,
       }));
     }
 
     return NextResponse.json({
       buddy,
       habits,
-      check_ins: checkIns,
-      pending_requests: pendingWithUsernames,
+      check_ins: [],
+      pending_requests: pendingWithNames,
     });
   } catch {
     return NextResponse.json(

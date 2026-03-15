@@ -1,265 +1,311 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState } from "react"
+import useSWR from "swr"
+import Image from "next/image"
+import type { BuddyData, User, Habit } from "@/lib/types"
 import { Progress } from "@/components/ui/progress"
 import { Input } from "@/components/ui/input"
-import { Search, UserPlus, Check, X, Users } from "lucide-react"
-import { toast } from "sonner"
-import type { BuddyData, User, Habit } from "@/lib/types"
 
-export function BuddySection() {
-  const [data, setData] = useState<BuddyData | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [searchQuery, setSearchQuery] = useState("")
-  const [searchResults, setSearchResults] = useState<User[]>([])
+const fetcher = (url: string) => fetch(url).then((r) => r.json())
+
+function BuddyHabitCard({ habit }: { habit: Habit }) {
+  const pct =
+    habit.total_days > 0
+      ? Math.round((habit.clean_days / habit.total_days) * 100)
+      : 0
+
+  return (
+    <div className="bg-[#151518] rounded-xl p-4 border-[0.5px] border-[rgba(255,255,255,0.06)]">
+      <div className="flex items-center justify-between mb-2">
+        <div className="flex items-center gap-2">
+          <span className="text-[14px] text-[#E8E6E1]">{habit.name}</span>
+          {habit.type === "quit" ? (
+            <span className="rounded-[20px] px-2 py-0.5 bg-[rgba(244,91,105,0.06)] text-[#F45B69] border-[0.5px] border-[rgba(244,91,105,0.10)] font-mono text-[10px] font-light tracking-[0.05em]">
+              QUIT
+            </span>
+          ) : (
+            <span className="rounded-[20px] px-2 py-0.5 bg-[rgba(200,245,110,0.08)] text-[#C8F56E] border-[0.5px] border-[rgba(200,245,110,0.15)] font-mono text-[10px] font-light tracking-[0.05em]">
+              BUILD
+            </span>
+          )}
+        </div>
+        <span className="font-mono text-[13px] text-[rgba(255,255,255,0.25)]">
+          {pct}%
+        </span>
+      </div>
+      <Progress value={pct} />
+      <div className="mt-2 flex items-baseline gap-1">
+        <span className="font-mono text-[20px] font-light text-[#E8E6E1]">
+          {habit.clean_days}
+        </span>
+        <span className="text-[12px] text-[rgba(255,255,255,0.25)]">
+          / {habit.total_days} days
+        </span>
+      </div>
+    </div>
+  )
+}
+
+function UserAvatar({ user, size = 40 }: { user: User; size?: number }) {
+  if (user.image) {
+    return (
+      <Image
+        src={user.image}
+        alt={user.name || ""}
+        width={size}
+        height={size}
+        className="rounded-full"
+      />
+    )
+  }
+  return (
+    <div
+      className="rounded-full bg-[#1C1C20] flex items-center justify-center text-[rgba(255,255,255,0.45)]"
+      style={{ width: size, height: size, fontSize: size * 0.4 }}
+    >
+      {user.name?.charAt(0)?.toUpperCase() || "?"}
+    </div>
+  )
+}
+
+function SearchUsers({ onRequestSent }: { onRequestSent: () => void }) {
+  const [query, setQuery] = useState("")
+  const [results, setResults] = useState<User[]>([])
   const [searching, setSearching] = useState(false)
+  const [sending, setSending] = useState<string | null>(null)
 
-  const fetchBuddyData = useCallback(async () => {
-    try {
-      const res = await fetch("/api/buddy")
-      if (res.ok) {
-        const json = await res.json()
-        setData(json)
-      }
-    } catch {
-      toast.error("Failed to load buddy data")
-    } finally {
-      setLoading(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    fetchBuddyData()
-  }, [fetchBuddyData])
-
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) return
+  async function handleSearch() {
+    if (!query.trim()) return
     setSearching(true)
     try {
       const res = await fetch(
-        `/api/buddy/search?q=${encodeURIComponent(searchQuery.trim())}`
+        `/api/buddy/search?q=${encodeURIComponent(query.trim())}`
       )
       if (res.ok) {
-        const json = await res.json()
-        setSearchResults(json.users || [])
-        if ((json.users || []).length === 0) {
-          toast.info("No users found")
-        }
+        const data = await res.json()
+        setResults(data.users || data)
       }
     } catch {
-      toast.error("Search failed")
+      // silent
     } finally {
       setSearching(false)
     }
   }
 
-  const sendRequest = async (username: string) => {
+  async function sendRequest(userId: string) {
+    setSending(userId)
     try {
       const res = await fetch("/api/buddy/request", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ to_username: username }),
+        body: JSON.stringify({ to_user_id: userId }),
       })
-      if (!res.ok) {
-        const json = await res.json()
-        throw new Error(json.error || "Failed to send request")
+      if (res.ok) {
+        onRequestSent()
+        setResults((prev) => prev.filter((u) => u.id !== userId))
       }
-      toast.success("Buddy request sent!")
-      setSearchResults([])
-      setSearchQuery("")
-      fetchBuddyData()
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to send request")
-    }
-  }
-
-  const respondToRequest = async (requestId: string, action: "accept" | "reject") => {
-    try {
-      const res = await fetch(`/api/buddy/respond`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ request_id: requestId, action }),
-      })
-      if (!res.ok) throw new Error("Failed")
-      toast.success(action === "accept" ? "Buddy added!" : "Request declined")
-      fetchBuddyData()
     } catch {
-      toast.error("Something went wrong")
+      // silent
+    } finally {
+      setSending(null)
     }
   }
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <div className="h-5 w-5 animate-spin rounded-full border-2 border-red-500 border-t-transparent" />
-      </div>
-    )
-  }
-
-  const pending = data?.pending_requests || []
-  const buddy = data?.buddy || null
-  const buddyHabits = data?.habits || []
 
   return (
-    <div className="space-y-6">
-      {/* Buddy exists */}
-      {buddy && (
-        <div className="space-y-4 animate-fade-up">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 font-bold text-sm">
-              {buddy.username[0].toUpperCase()}
-            </div>
-            <div>
-              <p className="font-semibold text-white">{buddy.username}</p>
-              <p className="text-[11px] text-zinc-500 uppercase tracking-wider">Accountability buddy</p>
-            </div>
-          </div>
+    <div>
+      <span className="text-[13px] font-normal uppercase tracking-[0.12em] text-[rgba(255,255,255,0.45)] block mb-3">
+        Find a Buddy
+      </span>
+      <div className="flex gap-2">
+        <Input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+          placeholder="Search by name or email"
+          className="bg-[#1C1C20] border-[0.5px] border-[rgba(255,255,255,0.06)] text-[#E8E6E1] h-11 rounded-xl placeholder:text-[rgba(255,255,255,0.25)] flex-1"
+        />
+        <button
+          onClick={handleSearch}
+          disabled={searching}
+          className="h-11 px-5 rounded-xl bg-[#C8F56E] text-[#0C0C0E] text-[13px] font-medium active:scale-[0.97] transition-transform duration-100 disabled:opacity-50"
+        >
+          {searching ? "..." : "Search"}
+        </button>
+      </div>
 
-          <div className="h-px bg-white/[0.04]" />
-
-          {buddyHabits.length === 0 ? (
-            <p className="text-sm text-zinc-600 text-center py-4">
-              Your buddy hasn&apos;t added any habits yet
-            </p>
-          ) : (
-            <div className="space-y-3">
-              <h3 className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider">
-                Their progress
-              </h3>
-              {buddyHabits.map((habit: Habit, i: number) => {
-                const pct =
-                  habit.total_days > 0
-                    ? Math.round((habit.clean_days / habit.total_days) * 100)
-                    : 0
-                return (
-                  <div key={habit.id} className={`glass-card rounded-xl p-3 space-y-2 animate-fade-up stagger-${Math.min(i + 1, 6)}`}>
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium text-sm text-white">{habit.name}</span>
-                      <span
-                        className={`text-[10px] font-medium uppercase tracking-wider px-2 py-0.5 rounded-md border ${
-                          habit.type === "quit"
-                            ? "text-red-400 bg-red-500/10 border-red-500/15"
-                            : "text-emerald-400 bg-emerald-500/10 border-emerald-500/15"
-                        }`}
-                      >
-                        {habit.type === "quit" ? "Quit" : "Build"}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between text-xs">
-                      <span className="text-zinc-500">
-                        <span className="text-zinc-300 font-mono">{habit.clean_days}</span>
-                        <span className="text-zinc-600">/{habit.total_days}</span>
-                        {" "}{habit.type === "quit" ? "clean" : "done"}
-                      </span>
-                      <span className="font-mono font-medium text-red-400">{pct}%</span>
-                    </div>
-                    <Progress value={pct} />
-                    {habit.today_status && (
-                      <div
-                        className={`text-center text-[11px] py-1.5 rounded-lg border ${
-                          habit.today_status === "clean"
-                            ? "bg-emerald-500/[0.06] text-emerald-400 border-emerald-500/10"
-                            : "bg-red-500/[0.06] text-red-400 border-red-500/10"
-                        }`}
-                      >
-                        {habit.today_status === "clean"
-                          ? habit.type === "quit" ? "Clean today" : "Done today"
-                          : habit.type === "quit" ? "Slip today" : "Missed today"}
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Pending requests */}
-      {pending.length > 0 && (
-        <div className="space-y-3 animate-fade-up stagger-2">
-          <h3 className="text-[11px] font-medium text-zinc-500 uppercase tracking-wider">
-            Pending requests
-          </h3>
-          {pending.map((req) => (
-            <div key={req.id} className="glass-card rounded-xl p-3 flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-white">
-                  {req.from_username || "Someone"}
-                </p>
-                <p className="text-[11px] text-zinc-500">wants to be your buddy</p>
+      {results.length > 0 && (
+        <div className="mt-3 space-y-2">
+          {results.map((user) => (
+            <div
+              key={user.id}
+              className="bg-[#151518] rounded-xl p-4 border-[0.5px] border-[rgba(255,255,255,0.06)] flex items-center justify-between"
+            >
+              <div className="flex items-center gap-3">
+                <UserAvatar user={user} size={36} />
+                <div>
+                  <span className="text-[14px] text-[#E8E6E1] block">
+                    {user.name}
+                  </span>
+                  <span className="text-[12px] text-[rgba(255,255,255,0.25)]">
+                    {user.email}
+                  </span>
+                </div>
               </div>
-              <div className="flex gap-2">
-                <button
-                  className="h-8 w-8 flex items-center justify-center rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/15 transition-all active:scale-95"
-                  onClick={() => respondToRequest(req.id, "accept")}
-                >
-                  <Check className="h-4 w-4" />
-                </button>
-                <button
-                  className="h-8 w-8 flex items-center justify-center rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/15 transition-all active:scale-95"
-                  onClick={() => respondToRequest(req.id, "reject")}
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
+              <button
+                onClick={() => sendRequest(user.id)}
+                disabled={sending === user.id}
+                className="h-9 px-4 rounded-xl bg-[rgba(200,245,110,0.08)] border-[0.5px] border-[rgba(200,245,110,0.15)] text-[#C8F56E] text-[12px] active:scale-[0.97] transition-transform duration-100 disabled:opacity-50"
+              >
+                {sending === user.id ? "..." : "Add"}
+              </button>
             </div>
           ))}
         </div>
       )}
+    </div>
+  )
+}
 
-      {/* Search for buddy */}
-      {!buddy && (
-        <div className="space-y-5 animate-fade-up stagger-2">
-          <div className="text-center space-y-3 py-8">
-            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-white/[0.03] border border-white/[0.06]">
-              <Users className="h-7 w-7 text-zinc-600" />
+function PendingRequests({
+  buddyData,
+  onRespond,
+}: {
+  buddyData: BuddyData
+  onRespond: () => void
+}) {
+  const [responding, setResponding] = useState<string | null>(null)
+
+  if (!buddyData.pending_requests || buddyData.pending_requests.length === 0)
+    return null
+
+  async function respond(requestId: string, action: "accept" | "reject") {
+    setResponding(requestId)
+    try {
+      await fetch("/api/buddy/respond", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ request_id: requestId, action }),
+      })
+      onRespond()
+    } catch {
+      // silent
+    } finally {
+      setResponding(null)
+    }
+  }
+
+  return (
+    <div>
+      <span className="text-[13px] font-normal uppercase tracking-[0.12em] text-[rgba(255,255,255,0.45)] block mb-3">
+        Pending Requests
+      </span>
+      <div className="space-y-2">
+        {buddyData.pending_requests.map((req) => (
+          <div
+            key={req.id}
+            className="bg-[#151518] rounded-xl p-4 border-[0.5px] border-[rgba(255,255,255,0.06)] flex items-center justify-between"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-full bg-[#1C1C20] flex items-center justify-center overflow-hidden">
+                {req.from_image ? (
+                  <Image
+                    src={req.from_image}
+                    alt={req.from_name || ""}
+                    width={36}
+                    height={36}
+                    className="rounded-full"
+                  />
+                ) : (
+                  <span className="text-[14px] text-[rgba(255,255,255,0.45)]">
+                    {req.from_name?.charAt(0)?.toUpperCase() || "?"}
+                  </span>
+                )}
+              </div>
+              <span className="text-[14px] text-[#E8E6E1]">
+                {req.from_name || "Unknown"}
+              </span>
             </div>
-            <h2 className="font-semibold text-lg text-white">Find a buddy</h2>
-            <p className="text-sm text-zinc-500 max-w-[250px] mx-auto">
-              See each other&apos;s progress. No cap.
-            </p>
-          </div>
-
-          <div className="flex gap-2">
-            <Input
-              placeholder="Search by username..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-              className="bg-white/[0.04] border-white/[0.06] text-white placeholder:text-zinc-600 h-11 rounded-xl focus:border-red-500/40 focus:ring-red-500/20"
-            />
-            <button
-              onClick={handleSearch}
-              disabled={searching}
-              className="h-11 w-11 flex-shrink-0 flex items-center justify-center rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 transition-all disabled:opacity-50 active:scale-95"
-            >
-              <Search className="h-4 w-4" />
-            </button>
-          </div>
-
-          {searchResults.length > 0 && (
-            <div className="space-y-2">
-              {searchResults.map((u) => (
-                <div key={u.id} className="glass-card rounded-xl p-3 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-red-500/10 border border-red-500/15 text-red-400 text-sm font-bold">
-                      {u.username[0].toUpperCase()}
-                    </div>
-                    <span className="text-sm font-medium text-white">{u.username}</span>
-                  </div>
-                  <button
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/15 transition-all active:scale-95"
-                    onClick={() => sendRequest(u.username)}
-                  >
-                    <UserPlus className="h-3.5 w-3.5" />
-                    Add
-                  </button>
-                </div>
-              ))}
+            <div className="flex gap-2">
+              <button
+                onClick={() => respond(req.id, "accept")}
+                disabled={responding === req.id}
+                className="h-9 px-3 rounded-xl bg-[rgba(200,245,110,0.08)] border-[0.5px] border-[rgba(200,245,110,0.15)] text-[#C8F56E] text-[12px] active:scale-[0.97] transition-transform duration-100 disabled:opacity-50"
+              >
+                Accept
+              </button>
+              <button
+                onClick={() => respond(req.id, "reject")}
+                disabled={responding === req.id}
+                className="h-9 px-3 rounded-xl bg-[rgba(244,91,105,0.06)] border-[0.5px] border-[rgba(244,91,105,0.10)] text-[#F45B69] text-[12px] active:scale-[0.97] transition-transform duration-100 disabled:opacity-50"
+              >
+                Reject
+              </button>
             </div>
-          )}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function BuddyProfile({ buddyData }: { buddyData: BuddyData }) {
+  if (!buddyData.buddy) return null
+
+  return (
+    <div className="bg-[#151518] rounded-2xl p-6 border-[0.5px] border-[rgba(255,255,255,0.06)]">
+      <span className="text-[13px] font-normal uppercase tracking-[0.12em] text-[rgba(255,255,255,0.45)] block mb-4">
+        Your Buddy
+      </span>
+      <div className="flex items-center gap-3">
+        <UserAvatar user={buddyData.buddy} size={44} />
+        <div>
+          <span className="text-[18px] font-medium text-[#E8E6E1] block">
+            {buddyData.buddy.name}
+          </span>
+          <span className="text-[12px] text-[rgba(255,255,255,0.25)]">
+            {buddyData.buddy.email}
+          </span>
         </div>
+      </div>
+
+      {buddyData.habits.length > 0 ? (
+        <div className="mt-5 space-y-3">
+          {buddyData.habits.map((h) => (
+            <BuddyHabitCard key={h.id} habit={h} />
+          ))}
+        </div>
+      ) : (
+        <p className="mt-4 text-[13px] text-[rgba(255,255,255,0.25)]">
+          Your buddy hasn&apos;t started tracking yet.
+        </p>
+      )}
+    </div>
+  )
+}
+
+export function BuddySection() {
+  const { data: buddyData, mutate } = useSWR<BuddyData>("/api/buddy", fetcher)
+
+  if (!buddyData) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <span className="text-[13px] text-[rgba(255,255,255,0.25)]">
+          Loading...
+        </span>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      {buddyData.buddy ? (
+        <BuddyProfile buddyData={buddyData} />
+      ) : (
+        <>
+          <PendingRequests buddyData={buddyData} onRespond={() => mutate()} />
+          <SearchUsers onRequestSent={() => mutate()} />
+        </>
       )}
     </div>
   )

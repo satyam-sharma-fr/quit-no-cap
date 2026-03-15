@@ -6,38 +6,27 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Plus } from "lucide-react"
-import { toast } from "sonner"
 
-export function AddHabitDialog({ onCreated }: { onCreated: () => void }) {
-  const [open, setOpen] = useState(false)
+export function AddHabitDialog({
+  open,
+  onOpenChange,
+  onCreated,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onCreated: () => void
+}) {
   const [name, setName] = useState("")
   const [type, setType] = useState<"quit" | "build">("quit")
-  const [startDate, setStartDate] = useState(
-    new Date().toISOString().split("T")[0]
-  )
   const [costPerUnit, setCostPerUnit] = useState("")
-  const [submitting, setSubmitting] = useState(false)
+  const [loading, setLoading] = useState(false)
 
-  const reset = () => {
-    setName("")
-    setType("quit")
-    setStartDate(new Date().toISOString().split("T")[0])
-    setCostPerUnit("")
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    if (!name.trim()) {
-      toast.error("Give your habit a name")
-      return
-    }
-
-    setSubmitting(true)
+    if (!name.trim()) return
+    setLoading(true)
     try {
       const res = await fetch("/api/habits", {
         method: "POST",
@@ -45,118 +34,96 @@ export function AddHabitDialog({ onCreated }: { onCreated: () => void }) {
         body: JSON.stringify({
           name: name.trim(),
           type,
-          start_date: startDate,
-          cost_per_unit: type === "quit" ? parseFloat(costPerUnit) || 0 : 0,
+          cost_per_unit: costPerUnit ? parseFloat(costPerUnit) : 0,
         }),
       })
-
-      if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data.error || "Failed to create habit")
-      }
-
-      toast.success("Habit created!")
-      reset()
-      setOpen(false)
+      if (!res.ok) throw new Error()
+      setName("")
+      setCostPerUnit("")
+      setType("quit")
+      onOpenChange(false)
       onCreated()
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Something went wrong")
+    } catch {
+      // silent
     } finally {
-      setSubmitting(false)
+      setLoading(false)
     }
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger
-        className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 hover:border-red-500/30 text-red-400 transition-all duration-200 hover:shadow-[0_0_15px_rgba(239,68,68,0.15)] active:scale-95"
-      >
-        <Plus className="h-5 w-5" />
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-md bg-[#111113] border-white/[0.06]">
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="bg-[#151518] border-[0.5px] border-[rgba(255,255,255,0.06)] max-w-sm">
         <DialogHeader>
-          <DialogTitle className="text-white">New habit</DialogTitle>
+          <DialogTitle className="text-[18px] font-medium text-[#E8E6E1]">
+            New Habit
+          </DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div className="space-y-2">
-            <Label htmlFor="habit-name" className="text-xs text-zinc-400 uppercase tracking-wider font-medium">
-              What habit?
-            </Label>
+        <form onSubmit={handleSubmit} className="space-y-5 mt-2">
+          <div>
+            <label className="text-[11px] font-normal uppercase tracking-[0.06em] text-[rgba(255,255,255,0.25)] block mb-2">
+              Habit Name
+            </label>
             <Input
-              id="habit-name"
-              placeholder="e.g. Smoking, Exercise, Junk Food..."
               value={name}
               onChange={(e) => setName(e.target.value)}
-              autoFocus
-              className="bg-white/[0.04] border-white/[0.06] text-white placeholder:text-zinc-600 h-11 rounded-xl focus:border-red-500/40 focus:ring-red-500/20"
+              placeholder="e.g. Smoking, Exercise"
+              className="bg-[#1C1C20] border-[0.5px] border-[rgba(255,255,255,0.06)] text-[#E8E6E1] h-11 rounded-xl placeholder:text-[rgba(255,255,255,0.25)]"
             />
           </div>
 
-          <div className="space-y-2">
-            <Label className="text-xs text-zinc-400 uppercase tracking-wider font-medium">Type</Label>
-            <div className="grid grid-cols-2 gap-2">
+          <div>
+            <label className="text-[11px] font-normal uppercase tracking-[0.06em] text-[rgba(255,255,255,0.25)] block mb-2">
+              Type
+            </label>
+            <div className="grid grid-cols-2 gap-2.5">
               <button
                 type="button"
-                className={`h-11 rounded-xl text-xs font-semibold transition-all duration-200 border active:scale-[0.97] ${
-                  type === "quit"
-                    ? "bg-red-500/15 text-red-400 border-red-500/30"
-                    : "bg-white/[0.03] text-zinc-500 border-white/[0.06] hover:bg-white/[0.05]"
-                }`}
                 onClick={() => setType("quit")}
+                className={`h-11 rounded-xl text-[14px] transition-transform duration-100 active:scale-[0.97] border-[0.5px] ${
+                  type === "quit"
+                    ? "bg-[rgba(244,91,105,0.06)] border-[rgba(244,91,105,0.10)] text-[#F45B69]"
+                    : "bg-[#1C1C20] border-[rgba(255,255,255,0.06)] text-[rgba(255,255,255,0.45)]"
+                }`}
               >
-                Quit Bad Habit
+                Quit
               </button>
               <button
                 type="button"
-                className={`h-11 rounded-xl text-xs font-semibold transition-all duration-200 border active:scale-[0.97] ${
-                  type === "build"
-                    ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
-                    : "bg-white/[0.03] text-zinc-500 border-white/[0.06] hover:bg-white/[0.05]"
-                }`}
                 onClick={() => setType("build")}
+                className={`h-11 rounded-xl text-[14px] transition-transform duration-100 active:scale-[0.97] border-[0.5px] ${
+                  type === "build"
+                    ? "bg-[rgba(200,245,110,0.08)] border-[rgba(200,245,110,0.15)] text-[#C8F56E]"
+                    : "bg-[#1C1C20] border-[rgba(255,255,255,0.06)] text-[rgba(255,255,255,0.45)]"
+                }`}
               >
-                Build Good Habit
+                Build
               </button>
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="start-date" className="text-xs text-zinc-400 uppercase tracking-wider font-medium">
-              Start date
-            </Label>
-            <Input
-              id="start-date"
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="bg-white/[0.04] border-white/[0.06] text-white h-11 rounded-xl focus:border-red-500/40 focus:ring-red-500/20"
-            />
-          </div>
-
           {type === "quit" && (
-            <div className="space-y-2">
-              <Label htmlFor="cost" className="text-xs text-zinc-400 uppercase tracking-wider font-medium">
-                Cost per unit ($)
-              </Label>
+            <div>
+              <label className="text-[11px] font-normal uppercase tracking-[0.06em] text-[rgba(255,255,255,0.25)] block mb-2">
+                Cost per day ($)
+              </label>
               <Input
-                id="cost"
                 type="number"
                 step="0.01"
                 min="0"
-                placeholder="e.g. 0.50 per cigarette"
                 value={costPerUnit}
                 onChange={(e) => setCostPerUnit(e.target.value)}
-                className="bg-white/[0.04] border-white/[0.06] text-white placeholder:text-zinc-600 h-11 rounded-xl focus:border-red-500/40 focus:ring-red-500/20"
+                placeholder="0.00"
+                className="bg-[#1C1C20] border-[0.5px] border-[rgba(255,255,255,0.06)] text-[#E8E6E1] h-11 rounded-xl placeholder:text-[rgba(255,255,255,0.25)]"
               />
             </div>
           )}
 
           <button
             type="submit"
-            disabled={submitting}
-            className="w-full h-11 rounded-xl bg-red-500 hover:bg-red-600 text-white font-semibold text-sm tracking-wide transition-all duration-200 disabled:opacity-50 hover:shadow-[0_0_20px_rgba(239,68,68,0.3)] active:scale-[0.98]"
+            disabled={loading || !name.trim()}
+            className="w-full h-[46px] rounded-xl bg-[#C8F56E] text-[#0C0C0E] text-[14px] font-medium active:scale-[0.97] transition-transform duration-100 disabled:opacity-50"
           >
-            {submitting ? "Creating..." : "Start Tracking"}
+            {loading ? "Creating..." : "Create Habit"}
           </button>
         </form>
       </DialogContent>

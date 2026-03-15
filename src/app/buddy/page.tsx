@@ -2,31 +2,31 @@
 
 import { useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { useAuth } from "@/components/auth-provider"
+import { useSession } from "next-auth/react"
 import { BuddySection } from "@/components/buddy-section"
 
 export default function BuddyPage() {
-  const { user, loading } = useAuth()
+  const { data: session, status } = useSession()
   const router = useRouter()
 
   useEffect(() => {
-    if (!loading && !user) {
+    if (status === "unauthenticated") {
       router.replace("/")
     }
-  }, [user, loading, router])
+  }, [status, router])
 
-  if (loading || !user) {
+  if (status === "loading" || !session) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#09090b]">
-        <div className="h-5 w-5 animate-spin rounded-full border-2 border-red-500 border-t-transparent" />
+      <div className="flex min-h-screen items-center justify-center bg-[#0C0C0E]">
+        <div className="h-4 w-4 animate-spin rounded-full border-[1.5px] border-[#C8F56E] border-t-transparent" />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-[#09090b] pb-24">
-      <div className="mx-auto max-w-md px-4 pt-6 pb-4 space-y-5">
-        <h1 className="text-xl font-bold text-white tracking-tight animate-fade-up">
+    <div className="min-h-screen bg-[#0C0C0E] pb-24">
+      <div className="mx-auto max-w-md px-7 pt-7 space-y-6">
+        <h1 className="text-[13px] uppercase tracking-[0.12em] text-[rgba(255,255,255,0.45)] animate-fade-up">
           BUDDY
         </h1>
         <BuddySection />
