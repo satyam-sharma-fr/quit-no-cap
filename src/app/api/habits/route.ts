@@ -104,13 +104,15 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      return NextResponse.json({ error: "Failed to create habit" }, { status: 500 });
+      console.error("Supabase insert error:", error);
+      return NextResponse.json({ error: "Failed to create habit", details: error.message }, { status: 500 });
     }
 
     return NextResponse.json({ habit }, { status: 201 });
-  } catch {
+  } catch (e) {
+    console.error("habits POST error:", e);
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Internal server error", details: String(e) },
       { status: 500 }
     );
   }

@@ -6,12 +6,17 @@ export async function getSession(): Promise<{
   email: string
   image?: string | null
 } | null> {
-  const session = await auth()
-  if (!session?.user?.id) return null
-  return {
-    id: session.user.id,
-    name: session.user.name || "",
-    email: session.user.email || "",
-    image: session.user.image,
+  try {
+    const session = await auth()
+    if (!session?.user?.id) return null
+    return {
+      id: session.user.id,
+      name: session.user.name || "",
+      email: session.user.email || "",
+      image: session.user.image,
+    }
+  } catch (e) {
+    console.error("getSession error:", e)
+    return null
   }
 }
