@@ -110,27 +110,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
       return true
     },
-    async jwt({ token, user }) {
-      if (user) {
-        // For credentials provider, user.id is already the profile id
-        // For Google, we need to look it up
-        if (user.id && user.id.length === 36) {
-          // UUID from credentials provider
-          token.profileId = user.id
-          token.profileName = user.name
-          token.profileImage = user.image
-        } else if (user.email) {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("id, name, email, image")
-            .eq("email", user.email)
-            .single()
+    async jwt({ token, user, account }) {
+      if (user?.email) {
+        // Always look up the profile from our DB by email
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("id, name, email, image")
+          .eq("email", user.email)
+          .single()
 
-          if (profile) {
-            token.profileId = profile.id
-            token.profileName = profile.name
-            token.profileImage = profile.image
-          }
+        if (profile) {
+          token.profileId = profile.id
+          token.profileName = profile.name
+          token.profileImage = profile.image
         }
       }
       return token
