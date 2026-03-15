@@ -110,9 +110,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
       return true
     },
-    async jwt({ token, user, account }) {
+    async jwt({ token, user }) {
+      // On sign-in, user object is present — look up profile
       if (user?.email) {
-        // Always look up the profile from our DB by email
         const { data: profile } = await supabase
           .from("profiles")
           .select("id, name, email, image")
@@ -123,8 +123,26 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           token.profileId = profile.id
           token.profileName = profile.name
           token.profileImage = profile.image
+          token.profileEmail = profile.email
         }
       }
+
+      // On subsequent requests, if profileId is missing, try to recover from token email
+      if (!token.profileId && token.email) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("id, name, email, image")
+          .eq("email", token.email as string)
+          .single()
+
+        if (profile) {
+          token.profileId = profile.id
+          token.profileName = profile.name
+          token.profileImage = profile.image
+          token.profileEmail = profile.email
+        }
+      }
+
       return token
     },
     async session({ session, token }) {
