@@ -4,6 +4,9 @@ import { usePathname } from "next/navigation"
 import Link from "next/link"
 import { useSession, signOut } from "next-auth/react"
 import { motion } from "framer-motion"
+import useSWR from "swr"
+import { fetcher } from "@/lib/fetcher"
+import type { BuddyData } from "@/lib/types"
 
 const tabs = [
   {
@@ -39,24 +42,42 @@ const tabs = [
 export function Navbar() {
   const pathname = usePathname()
   const { data: session } = useSession()
+  const { data: buddyData } = useSWR<BuddyData>(
+    session ? "/api/buddy" : null,
+    fetcher,
+    { refreshInterval: 30000 }
+  )
 
   if (!session) return null
 
+  const pendingCount = buddyData?.pending_requests?.length || 0
+
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 safe-area-bottom">
-      {/* Gradient fade */}
       <div className="absolute inset-0 bg-gradient-to-t from-[#0A0A0F] via-[#0A0A0F]/95 to-transparent pointer-events-none" />
 
       <div className="relative flex items-center justify-around py-3 pb-5 max-w-md mx-auto">
         {tabs.map((tab) => {
           const isActive = pathname.startsWith(tab.href)
+          const isBuddy = tab.href === "/buddy"
           return (
             <Link key={tab.href} href={tab.href} className="relative flex flex-col items-center gap-1.5 px-4">
               <motion.div
+                className="relative"
                 animate={isActive ? { scale: 1.1 } : { scale: 1 }}
                 transition={{ type: "spring", stiffness: 400, damping: 15 }}
               >
                 {tab.icon(isActive ? "#B8FF57" : "rgba(255,255,255,0.2)")}
+                {isBuddy && pendingCount > 0 && (
+                  <motion.div
+                    className="absolute -top-1 -right-1.5 min-w-[16px] h-[16px] rounded-full bg-[#FF4D6A] flex items-center justify-center px-1"
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: "spring", stiffness: 500, damping: 15 }}
+                  >
+                    <span className="text-[9px] font-bold text-white leading-none">{pendingCount}</span>
+                  </motion.div>
+                )}
               </motion.div>
               <span
                 className="text-[10px] tracking-[0.08em] uppercase font-medium"
