@@ -1,21 +1,20 @@
 import type { Metadata, Viewport } from "next";
-import { DM_Sans, DM_Mono } from "next/font/google";
+import { Urbanist, Fira_Code } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/components/auth-provider";
 import { Navbar } from "@/components/navbar";
 import { InstallPrompt } from "@/components/install-prompt";
 import { Toaster } from "@/components/ui/sonner";
 
-const dmSans = DM_Sans({
+const urbanist = Urbanist({
   variable: "--font-sans",
   subsets: ["latin"],
-  weight: ["300", "400", "500"],
 });
 
-const dmMono = DM_Mono({
+const firaCode = Fira_Code({
   variable: "--font-mono",
   subsets: ["latin"],
-  weight: ["300", "400"],
+  weight: ["300", "400", "500"],
 });
 
 export const metadata: Metadata = {
@@ -29,7 +28,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   viewportFit: "cover",
-  themeColor: "#0C0C0E",
+  themeColor: "#0A0A0F",
 };
 
 export default function RootLayout({
@@ -39,7 +38,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${dmSans.variable} ${dmMono.variable} antialiased`}>
+      <body className={`${urbanist.variable} ${firaCode.variable} antialiased`}>
         <AuthProvider>
           <InstallPrompt />
           {children}
@@ -48,10 +47,10 @@ export default function RootLayout({
             position="top-center"
             toastOptions={{
               style: {
-                background: "#151518",
-                border: "0.5px solid rgba(255,255,255,0.06)",
-                color: "#E8E6E1",
-                fontFamily: "var(--font-sans)",
+                background: "rgba(255,255,255,0.06)",
+                backdropFilter: "blur(20px)",
+                border: "0.5px solid rgba(255,255,255,0.1)",
+                color: "#F0EDE6",
               },
             }}
           />

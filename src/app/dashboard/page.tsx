@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
+import { motion, AnimatePresence } from "framer-motion"
 import useSWR from "swr"
 import { HabitCard } from "@/components/habit-card"
 import { AddHabitDialog } from "@/components/add-habit-dialog"
@@ -26,15 +27,17 @@ export default function DashboardPage() {
   const { pulling, pullDistance } = usePullRefresh(handleRefresh)
 
   useEffect(() => {
-    if (status === "unauthenticated") {
-      router.replace("/")
-    }
+    if (status === "unauthenticated") router.replace("/")
   }, [status, router])
 
   if (status === "loading" || !session) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-[#0C0C0E]">
-        <div className="h-4 w-4 animate-spin rounded-full border-[1.5px] border-[#C8F56E] border-t-transparent" />
+      <div className="flex min-h-screen items-center justify-center bg-[#0A0A0F]">
+        <motion.div
+          className="h-5 w-5 rounded-full border-2 border-[#B8FF57] border-t-transparent"
+          animate={{ rotate: 360 }}
+          transition={{ repeat: Infinity, duration: 0.8, ease: "linear" }}
+        />
       </div>
     )
   }
@@ -43,57 +46,108 @@ export default function DashboardPage() {
   const displayName = session.user?.name?.split(" ")[0] || "there"
 
   return (
-    <div className="min-h-screen bg-[#0C0C0E] pb-24">
-      {/* Pull-to-refresh indicator */}
-      {pulling && pullDistance > 10 && (
-        <div className="flex justify-center pt-3 pb-1">
-          <div
-            className="h-4 w-4 animate-spin rounded-full border-[1.5px] border-[#C8F56E] border-t-transparent"
-            style={{ opacity: Math.min(pullDistance / 60, 1) }}
-          />
-        </div>
-      )}
+    <div className="min-h-screen bg-[#0A0A0F] pb-24 relative">
+      {/* Background mesh */}
+      <div className="fixed inset-0 pointer-events-none" aria-hidden>
+        <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-[#B8FF57] opacity-[0.015] blur-[150px] rounded-full" />
+        <div className="absolute bottom-1/3 left-0 w-[300px] h-[300px] bg-[#57FFD1] opacity-[0.01] blur-[120px] rounded-full" />
+      </div>
 
-      <div className="mx-auto max-w-md px-7 pt-7 space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between animate-fade-up">
-          <div>
-            <h1 className="text-[13px] uppercase tracking-[0.12em] text-[rgba(255,255,255,0.45)]">
-              YOUR HABITS
-            </h1>
-            <p className="text-[22px] font-light text-[#E8E6E1] mt-1">
-              Keep going, <span className="font-medium">{displayName}</span>
-            </p>
-          </div>
-          <button
-            onClick={() => setAddOpen(true)}
-            className="h-10 w-10 flex items-center justify-center rounded-xl bg-[rgba(200,245,110,0.08)] border-[0.5px] border-[rgba(200,245,110,0.15)] text-[#C8F56E] active:scale-[0.97] transition-transform duration-100"
+      {/* Pull-to-refresh */}
+      <AnimatePresence>
+        {pulling && pullDistance > 10 && (
+          <motion.div
+            className="flex justify-center pt-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: Math.min(pullDistance / 60, 1) }}
+            exit={{ opacity: 0 }}
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C8F56E" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+            <motion.div
+              className="h-5 w-5 rounded-full border-2 border-[#B8FF57] border-t-transparent"
+              animate={{ rotate: 360 }}
+              transition={{ repeat: Infinity, duration: 0.8, ease: "linear" }}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <div className="mx-auto max-w-md px-6 pt-8 space-y-7 relative z-10">
+        {/* Header */}
+        <motion.div
+          className="flex items-start justify-between"
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+        >
+          <div>
+            <p className="text-[12px] uppercase tracking-[0.15em] text-[rgba(255,255,255,0.35)]">
+              Your Habits
+            </p>
+            <h1 className="text-[26px] font-semibold text-[#F0EDE6] mt-1 tracking-[-0.02em]">
+              Keep going, <span className="bg-gradient-to-r from-[#B8FF57] to-[#57FFD1] bg-clip-text text-transparent">{displayName}</span>
+            </h1>
+          </div>
+          <motion.button
+            onClick={() => setAddOpen(true)}
+            className="h-11 w-11 flex items-center justify-center rounded-2xl glass gradient-border"
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            transition={{ type: "spring", stiffness: 400, damping: 15 }}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#B8FF57" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
               <line x1="12" y1="5" x2="12" y2="19" />
               <line x1="5" y1="12" x2="19" y2="12" />
             </svg>
-          </button>
+          </motion.button>
           <AddHabitDialog open={addOpen} onOpenChange={setAddOpen} onCreated={() => mutate()} />
-        </div>
+        </motion.div>
 
-        {/* Habits list */}
+        {/* Habits */}
         {isLoading ? (
-          <div className="flex items-center justify-center py-16">
-            <div className="h-4 w-4 animate-spin rounded-full border-[1.5px] border-[#C8F56E] border-t-transparent" />
+          <div className="flex items-center justify-center py-20">
+            <motion.div
+              className="h-5 w-5 rounded-full border-2 border-[#B8FF57] border-t-transparent"
+              animate={{ rotate: 360 }}
+              transition={{ repeat: Infinity, duration: 0.8, ease: "linear" }}
+            />
           </div>
         ) : habits.length === 0 ? (
-          <div className="text-center py-20 animate-fade-up stagger-2">
-            <p className="text-[rgba(255,255,255,0.45)] text-sm">
-              No habits yet. Tap <span className="text-[#C8F56E]">+</span> to add one.
+          <motion.div
+            className="text-center py-24"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+          >
+            <motion.div
+              className="mx-auto h-16 w-16 rounded-2xl glass gradient-border flex items-center justify-center mb-5"
+              animate={{ y: [0, -6, 0] }}
+              transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
+            >
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="16" />
+                <line x1="8" y1="12" x2="16" y2="12" />
+              </svg>
+            </motion.div>
+            <p className="text-[rgba(255,255,255,0.35)] text-[14px]">
+              No habits yet. Tap <span className="text-[#B8FF57]">+</span> to start.
             </p>
-          </div>
+          </motion.div>
         ) : (
           <div className="space-y-3">
             {habits.map((habit, i) => (
-              <div key={habit.id} className={`animate-fade-up stagger-${Math.min(i + 1, 6)}`}>
+              <motion.div
+                key={habit.id}
+                initial={{ opacity: 0, y: 20, scale: 0.97 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{
+                  delay: i * 0.08,
+                  duration: 0.5,
+                  ease: [0.16, 1, 0.3, 1],
+                }}
+              >
                 <HabitCard habit={habit} onUpdate={() => mutate()} />
-              </div>
+              </motion.div>
             ))}
           </div>
         )}
