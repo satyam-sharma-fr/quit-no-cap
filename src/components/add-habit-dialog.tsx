@@ -8,7 +8,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Plus } from "lucide-react"
@@ -56,7 +55,7 @@ export function AddHabitDialog({ onCreated }: { onCreated: () => void }) {
         throw new Error(data.error || "Failed to create habit")
       }
 
-      toast.success("Habit created! Let's go 💪")
+      toast.success("Habit created!")
       reset()
       setOpen(false)
       onCreated()
@@ -70,69 +69,75 @@ export function AddHabitDialog({ onCreated }: { onCreated: () => void }) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger
-        className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-emerald-600 hover:bg-emerald-700 text-white shadow-md"
+        className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 hover:border-red-500/30 text-red-400 transition-all duration-200 hover:shadow-[0_0_15px_rgba(239,68,68,0.15)] active:scale-95"
       >
         <Plus className="h-5 w-5" />
       </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md bg-[#111113] border-white/[0.06]">
         <DialogHeader>
-          <DialogTitle>Add a new habit</DialogTitle>
+          <DialogTitle className="text-white">New habit</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-5">
           <div className="space-y-2">
-            <Label htmlFor="habit-name">What habit?</Label>
+            <Label htmlFor="habit-name" className="text-xs text-zinc-400 uppercase tracking-wider font-medium">
+              What habit?
+            </Label>
             <Input
               id="habit-name"
               placeholder="e.g. Smoking, Exercise, Junk Food..."
               value={name}
               onChange={(e) => setName(e.target.value)}
               autoFocus
+              className="bg-white/[0.04] border-white/[0.06] text-white placeholder:text-zinc-600 h-11 rounded-xl focus:border-red-500/40 focus:ring-red-500/20"
             />
           </div>
 
           <div className="space-y-2">
-            <Label>Type</Label>
+            <Label className="text-xs text-zinc-400 uppercase tracking-wider font-medium">Type</Label>
             <div className="grid grid-cols-2 gap-2">
-              <Button
+              <button
                 type="button"
-                variant={type === "quit" ? "default" : "outline"}
-                className={
+                className={`h-11 rounded-xl text-xs font-semibold transition-all duration-200 border active:scale-[0.97] ${
                   type === "quit"
-                    ? "bg-red-500 hover:bg-red-600 text-white"
-                    : ""
-                }
+                    ? "bg-red-500/15 text-red-400 border-red-500/30"
+                    : "bg-white/[0.03] text-zinc-500 border-white/[0.06] hover:bg-white/[0.05]"
+                }`}
                 onClick={() => setType("quit")}
               >
                 Quit Bad Habit
-              </Button>
-              <Button
+              </button>
+              <button
                 type="button"
-                variant={type === "build" ? "default" : "outline"}
-                className={
+                className={`h-11 rounded-xl text-xs font-semibold transition-all duration-200 border active:scale-[0.97] ${
                   type === "build"
-                    ? "bg-emerald-600 hover:bg-emerald-700 text-white"
-                    : ""
-                }
+                    ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
+                    : "bg-white/[0.03] text-zinc-500 border-white/[0.06] hover:bg-white/[0.05]"
+                }`}
                 onClick={() => setType("build")}
               >
                 Build Good Habit
-              </Button>
+              </button>
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="start-date">Start date</Label>
+            <Label htmlFor="start-date" className="text-xs text-zinc-400 uppercase tracking-wider font-medium">
+              Start date
+            </Label>
             <Input
               id="start-date"
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
+              className="bg-white/[0.04] border-white/[0.06] text-white h-11 rounded-xl focus:border-red-500/40 focus:ring-red-500/20"
             />
           </div>
 
           {type === "quit" && (
             <div className="space-y-2">
-              <Label htmlFor="cost">Cost per unit ($) — optional</Label>
+              <Label htmlFor="cost" className="text-xs text-zinc-400 uppercase tracking-wider font-medium">
+                Cost per unit ($)
+              </Label>
               <Input
                 id="cost"
                 type="number"
@@ -141,17 +146,18 @@ export function AddHabitDialog({ onCreated }: { onCreated: () => void }) {
                 placeholder="e.g. 0.50 per cigarette"
                 value={costPerUnit}
                 onChange={(e) => setCostPerUnit(e.target.value)}
+                className="bg-white/[0.04] border-white/[0.06] text-white placeholder:text-zinc-600 h-11 rounded-xl focus:border-red-500/40 focus:ring-red-500/20"
               />
             </div>
           )}
 
-          <Button
+          <button
             type="submit"
             disabled={submitting}
-            className="w-full bg-emerald-600 hover:bg-emerald-700 text-white"
+            className="w-full h-11 rounded-xl bg-red-500 hover:bg-red-600 text-white font-semibold text-sm tracking-wide transition-all duration-200 disabled:opacity-50 hover:shadow-[0_0_20px_rgba(239,68,68,0.3)] active:scale-[0.98]"
           >
             {submitting ? "Creating..." : "Start Tracking"}
-          </Button>
+          </button>
         </form>
       </DialogContent>
     </Dialog>

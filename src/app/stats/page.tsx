@@ -17,16 +17,18 @@ export default function StatsPage() {
 
   if (loading || !user) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-emerald-600 border-t-transparent" />
+      <div className="flex min-h-screen items-center justify-center bg-[#09090b]">
+        <div className="h-5 w-5 animate-spin rounded-full border-2 border-red-500 border-t-transparent" />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50/50 pb-24">
-      <div className="mx-auto max-w-md px-4 py-6 space-y-4">
-        <h1 className="text-xl font-bold text-gray-900">Stats</h1>
+    <div className="min-h-screen bg-[#09090b] pb-24">
+      <div className="mx-auto max-w-md px-4 pt-6 pb-4 space-y-5">
+        <h1 className="text-xl font-bold text-white tracking-tight animate-fade-up">
+          STATS
+        </h1>
         <StatsView />
       </div>
     </div>

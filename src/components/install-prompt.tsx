@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
 import { Download, X } from "lucide-react"
 
 interface BeforeInstallPromptEvent extends Event {
@@ -49,23 +48,23 @@ export function InstallPrompt() {
   if (dismissed || !deferredPrompt) return null
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-50 bg-emerald-600 text-white px-4 py-3 flex items-center justify-between gap-3 shadow-md">
-      <div className="flex items-center gap-2 text-sm">
-        <Download className="h-4 w-4 shrink-0" />
-        <span>Install Quit No Cap for the best experience</span>
+    <div className="fixed top-0 left-0 right-0 z-50 bg-[#111113]/95 backdrop-blur-xl border-b border-red-500/10 text-white px-4 py-3 flex items-center justify-between gap-3 animate-fade-up">
+      <div className="flex items-center gap-2.5 text-sm">
+        <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-red-500/10 border border-red-500/20">
+          <Download className="h-3.5 w-3.5 text-red-400" />
+        </div>
+        <span className="text-zinc-300 text-xs">Install for the best experience</span>
       </div>
       <div className="flex items-center gap-2 shrink-0">
-        <Button
-          size="sm"
-          variant="secondary"
-          className="h-7 text-xs bg-white text-emerald-700 hover:bg-emerald-50"
+        <button
+          className="px-3 py-1.5 text-[11px] font-semibold rounded-lg bg-red-500 hover:bg-red-600 text-white transition-all active:scale-95"
           onClick={handleInstall}
         >
           Install
-        </Button>
+        </button>
         <button
           onClick={handleDismiss}
-          className="text-white/80 hover:text-white"
+          className="text-zinc-600 hover:text-zinc-400 transition-colors"
         >
           <X className="h-4 w-4" />
         </button>
